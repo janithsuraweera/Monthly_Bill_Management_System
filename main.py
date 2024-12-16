@@ -1,79 +1,115 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox
-from datetime import date
-from openpyxl import Workbook, load_workbook
+from tkinter import ttk, messagebox
+from datetime import datetime
+import openpyxl
+from openpyxl import Workbook
 import os
 
-# Excel file setup
-FILE_NAME = "bill_data.xlsx"
+# Excel File Setup
+file_path = "Monthly_Bills.xlsx"
 
-# Check if the file exists, if not create it
-if not os.path.exists(FILE_NAME):
+if not os.path.exists(file_path):
     workbook = Workbook()
     sheet = workbook.active
-    sheet.title = "Bill Data"
-    sheet.append(["Account Number", "Bill Amount (Rs)", "Date", "Slip Path"])
-    workbook.save(FILE_NAME)
+    sheet.title = "Bills"
+    sheet.append(["Account Number", "Month", "Bill Amount", "Paid Amount", "Remaining Balance", "Date", "Time"])
+    workbook.save(file_path)
 
-# GUI Application
+# Functions
+def submit_data():
+    account = account_var.get()
+    bill_amount = bill_var.get()
+    paid_amount = amount_paid_var.get()
+    remaining_balance = remaining_balance_var.get()
+    date = date_var.get()
+    time = time_var.get()
+
+    if not account or not bill_amount or not paid_amount:
+        messagebox.showerror("Input Error", "All fields are required.")
+        return
+
+    # Excel Writing
+    workbook = openpyxl.load_workbook(file_path)
+    sheet = workbook.active
+    sheet.append([account, datetime.now().strftime("%B %Y"), bill_amount, paid_amount, remaining_balance, date, time])
+    workbook.save(file_path)
+    messagebox.showinfo("Success", "Bill data saved successfully!")
+    clear_fields()
+
+def calculate_balance():
+    try:
+        bill = float(bill_var.get())
+        paid = float(amount_paid_var.get())
+        remaining = bill - paid
+        remaining_balance_var.set(f"{remaining:.2f}")
+    except ValueError:
+        messagebox.showerror("Calculation Error", "Enter valid numeric values for bill and paid amounts.")
+
+def clear_fields():
+    account_var.set("")
+    bill_var.set("")
+    amount_paid_var.set("")
+    remaining_balance_var.set("")
+    date_var.set(datetime.now().strftime("%Y-%m-%d"))
+    time_var.set(datetime.now().strftime("%H:%M:%S"))
+
+def edit_excel():
+    password = password_var.get()
+    if password == "admin002$":
+        os.system(f'start excel "{file_path}"')
+    else:
+        messagebox.showerror("Access Denied", "Invalid password.")
+
+# GUI Setup
 root = tk.Tk()
-root.title("Monthly Bill Management")
+root.title("Monthly Bill Management System")
+root.geometry("600x400")
 
 # Variables
 account_var = tk.StringVar()
 bill_var = tk.StringVar()
-date_var = tk.StringVar(value=date.today().strftime('%Y-%m-%d'))
-slip_path = tk.StringVar()
+amount_paid_var = tk.StringVar()
+remaining_balance_var = tk.StringVar()
+date_var = tk.StringVar()
+time_var = tk.StringVar()
+password_var = tk.StringVar()
 
-# Functions
-def upload_slip():
-    file_path = filedialog.askopenfilename(
-        filetypes=[("Image Files", "*.png;*.jpg;*.jpeg"), ("All Files", "*.*")]
-    )
-    if file_path:
-        slip_path.set(file_path)
-        messagebox.showinfo("Upload Success", "Slip uploaded successfully!")
-
-def submit_data():
-    account = account_var.get()
-    bill_amount = bill_var.get()
-    bill_date = date_var.get()
-    slip = slip_path.get()
-
-    if not account or not bill_amount or not bill_date or not slip:
-        messagebox.showwarning("Missing Data", "Please fill in all fields!")
-        return
-
-    # Save data to Excel
-    workbook = load_workbook(FILE_NAME)
-    sheet = workbook.active
-    sheet.append([account, bill_amount, bill_date, slip])
-    workbook.save(FILE_NAME)
-
-    messagebox.showinfo("Success", "Data saved successfully!")
-    account_var.set("")
-    bill_var.set("")
-    slip_path.set("")
+# Initialize date and time
+date_var.set(datetime.now().strftime("%Y-%m-%d"))
+time_var.set(datetime.now().strftime("%H:%M:%S"))
 
 # Layout
-tk.Label(root, text="Account Number").grid(row=0, column=0, padx=10, pady=5, sticky="w")
-account_entry = tk.Entry(root, textvariable=account_var)
-account_entry.grid(row=0, column=1, padx=10, pady=5)
+tk.Label(root, text="Account Number", font=("Arial", 12)).grid(row=0, column=0, padx=10, pady=5, sticky="w")
+account_menu = ttk.Combobox(root, textvariable=account_var, values=[
+    "4515215604 (Home Up)",
+    "4510306709 (Home Down)",
+    "4521245706 (Shop)",
+    "4523059306 (Loku Land)",
+    "4500310703 (Ahangama)"
+], state="readonly")
+account_menu.grid(row=0, column=1, padx=10, pady=5)
 
-tk.Label(root, text="Bill Amount (Rs)").grid(row=1, column=0, padx=10, pady=5, sticky="w")
-bill_entry = tk.Entry(root, textvariable=bill_var)
-bill_entry.grid(row=1, column=1, padx=10, pady=5)
+tk.Label(root, text="Total Bill Amount", font=("Arial", 12)).grid(row=1, column=0, padx=10, pady=5, sticky="w")
+tk.Entry(root, textvariable=bill_var, font=("Arial", 12)).grid(row=1, column=1, padx=10, pady=5)
 
-tk.Label(root, text="Date").grid(row=2, column=0, padx=10, pady=5, sticky="w")
-date_entry = tk.Entry(root, textvariable=date_var, state="readonly")
-date_entry.grid(row=2, column=1, padx=10, pady=5)
+tk.Label(root, text="Amount Paid", font=("Arial", 12)).grid(row=2, column=0, padx=10, pady=5, sticky="w")
+tk.Entry(root, textvariable=amount_paid_var, font=("Arial", 12)).grid(row=2, column=1, padx=10, pady=5)
 
-tk.Button(root, text="Upload Slip", command=upload_slip).grid(row=3, column=0, padx=10, pady=5)
-tk.Label(root, textvariable=slip_path, fg="blue").grid(row=3, column=1, padx=10, pady=5, sticky="w")
+tk.Label(root, text="Remaining Balance", font=("Arial", 12)).grid(row=3, column=0, padx=10, pady=5, sticky="w")
+tk.Entry(root, textvariable=remaining_balance_var, font=("Arial", 12), state="readonly").grid(row=3, column=1, padx=10, pady=5)
 
-tk.Button(root, text="Submit", command=submit_data, bg="green", fg="white").grid(
-    row=4, column=0, columnspan=2, pady=10
-)
+tk.Label(root, text="Date", font=("Arial", 12)).grid(row=4, column=0, padx=10, pady=5, sticky="w")
+tk.Entry(root, textvariable=date_var, font=("Arial", 12), state="readonly").grid(row=4, column=1, padx=10, pady=5)
 
-# Run the application
+tk.Label(root, text="Time", font=("Arial", 12)).grid(row=5, column=0, padx=10, pady=5, sticky="w")
+tk.Entry(root, textvariable=time_var, font=("Arial", 12), state="readonly").grid(row=5, column=1, padx=10, pady=5)
+
+tk.Button(root, text="Calculate Balance", command=calculate_balance, font=("Arial", 12), bg="lightblue").grid(row=6, column=0, padx=10, pady=20)
+tk.Button(root, text="Submit", command=submit_data, font=("Arial", 12), bg="lightgreen").grid(row=6, column=1, padx=10, pady=20)
+
+tk.Label(root, text="Admin Password", font=("Arial", 12)).grid(row=7, column=0, padx=10, pady=5, sticky="w")
+tk.Entry(root, textvariable=password_var, font=("Arial", 12), show="*").grid(row=7, column=1, padx=10, pady=5)
+tk.Button(root, text="Edit Excel", command=edit_excel, font=("Arial", 12), bg="orange").grid(row=8, column=0, columnspan=2, pady=10)
+
+# Run GUI
 root.mainloop()
