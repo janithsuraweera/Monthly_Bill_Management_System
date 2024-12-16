@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog, simpledialog
 from datetime import datetime
 import openpyxl
 from openpyxl import Workbook
@@ -8,7 +8,11 @@ import os
 # Excel File Setup
 file_path = "Monthly_Bills.xlsx"
 
-# Check if file exists, create it if not
+# Default Admin Password
+default_admin_password = "admin002$"
+new_admin_password = "janith005*"
+
+# Check if the Excel file exists, if not create one
 if not os.path.exists(file_path):
     workbook = Workbook()
     sheet = workbook.active
@@ -68,35 +72,45 @@ def clear_fields():
 
 
 def edit_excel():
+    global default_admin_password  # Declare the variable as global before using it
     password = password_var.get()
-    if password == "admin002$":
+    if password == default_admin_password:
+        # Allow the user to change the password
+        new_password = simpledialog.askstring("Change Password", "Enter new admin password:")
+        if new_password:
+            default_admin_password = new_password  # Modify the global password
+            messagebox.showinfo("Password Changed", "Admin password has been changed.")
+    else:
+        messagebox.showerror("Access Denied", "Invalid admin password.")
+
+
+def open_excel_file():
+    password = password_var.get()
+    if password == default_admin_password:
         os.system(f'start excel "{file_path}"')
     else:
         messagebox.showerror("Access Denied", "Invalid password.")
 
 
-def delete_sheet():
+def show_result():
     password = password_var.get()
-    if password == "admin002$":
-        account = account_var.get()
-        if account:
-            workbook = openpyxl.load_workbook(file_path)
-            if account in workbook.sheetnames:
-                del workbook[account]
-                workbook.save(file_path)
-                messagebox.showinfo("Success", f"Account '{account}' sheet deleted successfully.")
-            else:
-                messagebox.showerror("Error", "Sheet not found for this account.")
-        else:
-            messagebox.showerror("Error", "Please select an account to delete.")
+    if password == default_admin_password:
+        os.system(f'start excel "{file_path}"')
     else:
         messagebox.showerror("Access Denied", "Invalid password.")
+
+
+def upload_pdf():
+    # File dialog to select the PDF or receipt
+    file_path = filedialog.askopenfilename(filetypes=[("PDF files", "*.pdf")])
+    if file_path:
+        messagebox.showinfo("File Uploaded", f"File {file_path} uploaded successfully!")
 
 
 # GUI Setup
 root = tk.Tk()
 root.title("Monthly Bill Management System")
-root.geometry("600x400")
+root.geometry("600x500")
 
 # Variables
 account_var = tk.StringVar()
@@ -147,9 +161,13 @@ tk.Button(root, text="Submit", command=submit_data, font=("Arial", 12), bg="ligh
 
 tk.Label(root, text="Admin Password", font=("Arial", 12)).grid(row=7, column=0, padx=10, pady=5, sticky="w")
 tk.Entry(root, textvariable=password_var, font=("Arial", 12), show="*").grid(row=7, column=1, padx=10, pady=5)
-tk.Button(root, text=".", command=edit_excel, font=("Arial", 12), bg="orange").grid(row=8, column=0,
-                                                                                             columnspan=2, pady=10)
 
+tk.Button(root, text="Edit Excel", command=edit_excel, font=("Arial", 12), bg="orange").grid(row=8, column=0,
+                                                                                             columnspan=2, pady=10)
+tk.Button(root, text="Show Result", command=show_result, font=("Arial", 12), bg="yellow").grid(row=9, column=0,
+                                                                                               columnspan=2, pady=10)
+tk.Button(root, text="Upload PDF", command=upload_pdf, font=("Arial", 12), bg="lightpink").grid(row=10, column=0,
+                                                                                                columnspan=2, pady=10)
 
 # Run GUI
 root.mainloop()
